@@ -208,7 +208,7 @@ jobs:
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
-        CGO_ENABLED: ${{ matrix.goos == 'windows' && '0' || (matrix.goos == 'darwin' && '0' || '1') }}
+        CGO_ENABLED: ${{ matrix.goos == 'darwin' && '0' || '1' }}
       run: |
         echo "🔨 开始为 ${{ matrix.goos }}-${{ matrix.goarch }} 构建二进制文件..."
 
