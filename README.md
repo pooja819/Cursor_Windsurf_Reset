@@ -25,33 +25,6 @@ An advanced tool for resetting Cursor and Windsurf application data, supporting 
    - Linux: `Cursor_Windsurf_Reset-linux`
 3. Double-click to run (Windows) or execute in terminal
 
-### Method 2: Build from Source (Ubuntu 22.04)
-
-#### Prerequisites
-- Go 1.21 or higher
-- Build tools and OpenGL libraries
-
-#### Quick Setup for Ubuntu 22.04
-
-**如果遇到编译错误 (推荐先试这个)**:
-```bash
-# 快速修复 OpenGL/X11 依赖问题
-chmod +x fix_ubuntu_deps.sh
-./fix_ubuntu_deps.sh
-```
-
-**完整构建流程**:
-```bash
-# Method 1: One-click build
-chmod +x build_ubuntu.sh
-./build_ubuntu.sh
-
-# Method 2: Manual step-by-step
-chmod +x install_deps_ubuntu.sh
-./install_deps_ubuntu.sh
-make all
-```
-
 #### Manual Setup
 ```bash
 # Install system dependencies
