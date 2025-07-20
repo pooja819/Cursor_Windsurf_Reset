@@ -215,7 +215,7 @@ jobs:
         # 设置交叉编译环境
         if [ "${{ matrix.goos }}" = "windows" ]; then
           echo "ℹ️ Windows构建禁用CGO以避免交叉编译问题"
-          export CGO_ENABLED=0
+          export CGO_ENABLED=1
         elif [ "${{ matrix.goos }}" = "darwin" ]; then
           echo "ℹ️ macOS构建已禁用CGO以解决交叉编译问题"
           export CGO_ENABLED=0
