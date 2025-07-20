@@ -20,19 +20,42 @@ func Init(i18nPath string) (*i18n.Bundle, error) {
 	bundle := i18n.NewBundle(language.English)
 	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
 
-	files, err := os.ReadDir(i18nPath)
-	if err != nil {
-		return nil, err
+	// 尝试多个可能的路径
+	possiblePaths := []string{
+		i18nPath,
+		filepath.Join(".", i18nPath),
+		filepath.Join(getExecutableDir(), i18nPath),
+		filepath.Join(getExecutableDir(), "..", i18nPath),
 	}
 
-	for _, file := range files {
-		if !file.IsDir() && (filepath.Ext(file.Name()) == ".json") {
-			path := filepath.Join(i18nPath, file.Name())
-			bundle.MustLoadMessageFile(path)
+	var lastErr error
+	for _, path := range possiblePaths {
+		files, err := os.ReadDir(path)
+		if err != nil {
+			lastErr = err
+			continue
 		}
+
+		// 找到有效路径，加载文件
+		for _, file := range files {
+			if !file.IsDir() && (filepath.Ext(file.Name()) == ".json") {
+				filePath := filepath.Join(path, file.Name())
+				bundle.MustLoadMessageFile(filePath)
+			}
+		}
+		return bundle, nil
 	}
 
-	return bundle, nil
+	return nil, lastErr
+}
+
+// getExecutableDir 获取可执行文件所在目录
+func getExecutableDir() string {
+	ex, err := os.Executable()
+	if err != nil {
+		return "."
+	}
+	return filepath.Dir(ex)
 }
 
 func NewLocalizer(bundle *i18n.Bundle, lang string) *LocalizerWrapper {

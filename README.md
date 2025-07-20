@@ -25,6 +25,59 @@ An advanced tool for resetting Cursor and Windsurf application data, supporting 
    - Linux: `Cursor_Windsurf_Reset-linux`
 3. Double-click to run (Windows) or execute in terminal
 
+### Method 2: Build from Source (Ubuntu 22.04)
+
+#### Prerequisites
+- Go 1.21 or higher
+- Build tools and OpenGL libraries
+
+#### Quick Setup for Ubuntu 22.04
+```bash
+# Method 1: One-click build (recommended)
+chmod +x build_ubuntu.sh
+./build_ubuntu.sh
+
+# Method 2: Manual step-by-step
+chmod +x install_deps_ubuntu.sh
+./install_deps_ubuntu.sh
+make all
+```
+
+#### Manual Setup
+```bash
+# Install system dependencies
+sudo apt update
+sudo apt install -y build-essential libgl1-mesa-dev libglu1-mesa-dev \
+    mesa-common-dev libglfw3-dev libx11-dev libxcursor-dev libxrandr-dev \
+    libxinerama-dev libxi-dev libxxf86vm-dev libxext-dev libxfixes-dev \
+    libxrender-dev libxss-dev pkg-config libgtk-3-dev \
+    libayatana-appindicator3-dev libxapp-dev
+
+# Install Go dependencies and build
+go mod tidy
+go build -o Cursor_Windsurf_Reset .
+```
+
+#### Troubleshooting Ubuntu Build Issues
+If you encounter build errors on Ubuntu:
+
+1. **OpenGL/X11 errors**: Make sure all development libraries are installed
+   ```bash
+   sudo apt install -y libgl1-mesa-dev mesa-common-dev libx11-dev
+   ```
+
+2. **pkg-config errors**: Install pkg-config and verify library paths
+   ```bash
+   sudo apt install -y pkg-config
+   pkg-config --list-all | grep -E "(gl|x11|gtk)"
+   ```
+
+3. **Go version issues**: Ensure Go version >= 1.21
+   ```bash
+   go version
+   # If too old, install newer version from https://golang.org/
+   ```
+
 #### Usage Steps
 1. After launching the application, the tool will automatically detect installed applications
 2. Select the applications to reset (Cursor, Windsurf, or all)

@@ -434,7 +434,9 @@ func (app *App) createContent() fyne.CanvasObject {
 // performDiscovery performs application discovery
 func (app *App) performDiscovery() {
 	app.logMessage("INFO", "LogDiscoveryStarted", nil)
-	app.statusLabel.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "StatusDiscoveringApps"}))
+	if app.statusLabel != nil {
+		app.statusLabel.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "StatusDiscoveringApps"}))
+	}
 
 	// 获取和显示所有应用数据路径
 	appDataPaths := app.engine.GetAppDataPaths()
@@ -537,10 +539,19 @@ func (app *App) performDiscovery() {
 	// 重新创建并刷新应用列表
 	app.refreshAppList()
 
-	// 确保在主UI线程上执行刷新
-	fyne.CurrentApp().Driver().CanvasForObject(app.mainWindow.Content()).Refresh(app.mainWindow.Content())
+	// 确保在主UI线程上执行刷新 - 添加空指针检查
+	if app.mainWindow != nil && app.mainWindow.Content() != nil {
+		if canvas := fyne.CurrentApp().Driver().CanvasForObject(app.mainWindow.Content()); canvas != nil {
+			canvas.Refresh(app.mainWindow.Content())
+		} else {
+			// 如果无法获取Canvas，直接刷新窗口内容
+			app.mainWindow.Content().Refresh()
+		}
+	}
 
-	app.statusLabel.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "StatusDiscoveryComplete"}))
+	if app.statusLabel != nil {
+		app.statusLabel.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "StatusDiscoveryComplete"}))
+	}
 	app.logMessage("INFO", "LogDiscoveryComplete", nil)
 
 	// 计算有效的应用数量（已找到且未运行的应用）
@@ -566,14 +577,20 @@ func (app *App) onDiscover() {
 	app.logMessage("INFO", "LogUserStartedDiscovery", nil)
 
 	// 禁用扫描按钮，防止重复点击
-	app.discoverButton.Disable()
-	app.discoverButton.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Scanning"}))
+	if app.discoverButton != nil {
+		app.discoverButton.Disable()
+		app.discoverButton.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Scanning"}))
+	}
 
 	// 显示加载状态
-	app.statusLabel.Show()
-	app.statusLabel.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "ScanningApplications"}))
-	app.progressBar.Show()
-	app.progressBar.SetValue(0.5) // 中间值，表示处理中
+	if app.statusLabel != nil {
+		app.statusLabel.Show()
+		app.statusLabel.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "ScanningApplications"}))
+	}
+	if app.progressBar != nil {
+		app.progressBar.Show()
+		app.progressBar.SetValue(0.5) // 中间值，表示处理中
+	}
 
 	// 在后台线程中执行扫描
 	go func() {
@@ -581,11 +598,17 @@ func (app *App) onDiscover() {
 		app.performDiscovery()
 
 		// 恢复UI状态
-		app.discoverButton.Enable()
-		app.discoverButton.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "DiscoverApps"}))
+		if app.discoverButton != nil {
+			app.discoverButton.Enable()
+			app.discoverButton.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "DiscoverApps"}))
+		}
 
-		app.progressBar.Hide()
-		app.statusLabel.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Ready"}))
+		if app.progressBar != nil {
+			app.progressBar.Hide()
+		}
+		if app.statusLabel != nil {
+			app.statusLabel.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Ready"}))
+		}
 	}()
 }
 
@@ -715,12 +738,14 @@ func (app *App) performCleanup(appInfo AppInfo) {
 		"AppName": appInfo.DisplayName,
 	})
 
-	app.statusLabel.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{
-		MessageID: "StatusResetting",
-		TemplateData: map[string]interface{}{
-			"AppName": appInfo.DisplayName,
-		},
-	}))
+	if app.statusLabel != nil {
+		app.statusLabel.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "StatusResetting",
+			TemplateData: map[string]interface{}{
+				"AppName": appInfo.DisplayName,
+			},
+		}))
+	}
 	app.progressBar.Show()
 	app.progressBar.SetValue(0)
 
@@ -753,10 +778,14 @@ func (app *App) monitorProgress() {
 	var completedApps []string // 记录已完成的应用
 
 	for update := range progressChan {
-		app.progressBar.SetValue(update.Progress / 100.0)
+		if app.progressBar != nil {
+			app.progressBar.SetValue(update.Progress / 100.0)
+		}
 
 		// 状态消息可能已经是国际化的，直接使用
-		app.statusLabel.SetText(update.Message)
+		if app.statusLabel != nil {
+			app.statusLabel.SetText(update.Message)
+		}
 
 		app.logMessage("INFO", "LogResetProgress", map[string]interface{}{
 			"Phase":   update.Phase,
@@ -1234,31 +1263,35 @@ func (app *App) refreshAppList() {
 	newAppListArea := app.createAppListArea()
 
 	// 设置主区域的实际宽高
-	app.logMessage("INFO", "LogMainAreaSize", map[string]interface{}{
-		"Size": app.mainAreaContainer.Size(),
-	})
+	if app.mainAreaContainer != nil {
+		app.logMessage("INFO", "LogMainAreaSize", map[string]interface{}{
+			"Size": app.mainAreaContainer.Size(),
+		})
+	}
 
 	// 检查主区域是否是VSplit布局
-	if vSplit, ok := app.mainAreaContainer.(*container.Split); ok {
-		app.logMessage("INFO", "LogFoundVSplit", nil)
+	if app.mainAreaContainer != nil {
+		if vSplit, ok := app.mainAreaContainer.(*container.Split); ok {
+			app.logMessage("INFO", "LogFoundVSplit", nil)
 
-		// 获取当前分割比例
-		currentOffset := vSplit.Offset
+			// 获取当前分割比例
+			currentOffset := vSplit.Offset
 
-		// 只更新上半部分（应用列表）
-		vSplit.Leading = newAppListArea
+			// 只更新上半部分（应用列表）
+			vSplit.Leading = newAppListArea
 
-		// 保持原有分割比例
-		vSplit.Offset = currentOffset
-		app.logMessage("INFO", "LogMaintainingSplitRatio", map[string]interface{}{
-			"Ratio": currentOffset,
-		})
+			// 保持原有分割比例
+			vSplit.Offset = currentOffset
+			app.logMessage("INFO", "LogMaintainingSplitRatio", map[string]interface{}{
+				"Ratio": currentOffset,
+			})
 
-		// 刷新UI
-		vSplit.Refresh()
-		app.logMessage("INFO", "LogVSplitRefreshed", nil)
-	} else {
-		app.logMessage("ERROR", "LogMainAreaNotVSplit", nil)
+			// 刷新UI
+			vSplit.Refresh()
+			app.logMessage("INFO", "LogVSplitRefreshed", nil)
+		} else {
+			app.logMessage("ERROR", "LogMainAreaNotVSplit", nil)
+		}
 	}
 
 	elapsedTime := time.Since(startTime)
