@@ -34,6 +34,7 @@ type App struct {
 	logChan    chan string
 	bundle     *i18n.Bundle
 	localizer  *appi18n.LocalizerWrapper
+	version    string
 
 	guiLogger zerolog.Logger
 
@@ -63,7 +64,7 @@ type AppInfo struct {
 	Found       bool
 }
 
-func NewApp() *App {
+func NewApp(version string) *App {
 	fyneApp := app.New()
 	fyneApp.SetIcon(theme.ComputerIcon())
 
@@ -113,6 +114,7 @@ func NewApp() *App {
 		logChan:       logChan,
 		bundle:        bundle,
 		localizer:     localizer,
+		version:       version,
 		guiLogger:     guiLogger,
 		selectedApps:  make(map[int]bool),
 		selectedIndex: -1,
@@ -172,7 +174,11 @@ func (app *App) listenForLogs() {
 }
 
 func (app *App) setupMainWindow() {
-	app.mainWindow = app.fyneApp.NewWindow(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "WindowTitle"}))
+	title := app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "WindowTitle"})
+	if app.version != "" && app.version != "dev" {
+		title = fmt.Sprintf("%s %s", title, app.version)
+	}
+	app.mainWindow = app.fyneApp.NewWindow(title)
 	app.mainWindow.Resize(fyne.NewSize(800, 600))
 	app.mainWindow.CenterOnScreen()
 	app.mainWindow.SetIcon(theme.ComputerIcon())
@@ -893,9 +899,17 @@ func (app *App) onAbout() {
 	projectLink := widget.NewHyperlink(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "ProjectHomepage"}), projectURL)
 	projectLink.Alignment = fyne.TextAlignCenter
 
+	// Create version string
+	versionString := app.localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "Version",
+		TemplateData: map[string]interface{}{
+			"Version": app.version,
+		},
+	})
+
 	aboutContent := container.NewVBox(
 		widget.NewLabelWithStyle(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "AboutTitle"}), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
-		widget.NewLabel(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "Version"})),
+		widget.NewLabel(versionString),
 		widget.NewLabel(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "DevelopedBy"})),
 		projectLink,
 		widget.NewSeparator(),
@@ -1301,7 +1315,11 @@ func (app *App) refreshAppList() {
 }
 
 func (app *App) recreateUI() {
-	app.mainWindow.SetTitle(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "WindowTitle"}))
+	title := app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "WindowTitle"})
+	if app.version != "" && app.version != "dev" {
+		title = fmt.Sprintf("%s v%s", title, app.version)
+	}
+	app.mainWindow.SetTitle(title)
 	app.mainWindow.SetContent(app.createContent())
 	// Re-run discovery to populate the list with the correct language
 	go func() {

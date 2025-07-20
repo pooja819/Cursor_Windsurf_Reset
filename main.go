@@ -15,6 +15,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// version will be set at build time using -ldflags
+var version = "dev"
+
 func main() {
 	os.Setenv("FYNE_FONT", "")
 	os.Setenv("FYNE_SCALE", "1.1")
@@ -34,7 +37,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Println("Cursor & Windsurf Data Cleaner v2.0.0 (Go)")
+		fmt.Printf("Cursor & Windsurf Data Cleaner %s (Go)\n", version)
 		fmt.Println("Built with Go and Fyne GUI framework")
 		return
 	}
@@ -98,7 +101,7 @@ func main() {
 func runCLI(engine *cleaner.Engine, cfg *config.Config,
 	discover *bool, clean *string, cleanAll *bool, noConfirm *bool, dryRun *bool) {
 
-	fmt.Println("🧹 Cursor & Windsurf Data Cleaner v2.0.0 (Go)")
+	fmt.Printf("🧹 Cursor & Windsurf Data Cleaner %s (Go)\n", version)
 	fmt.Println(strings.Repeat("=", 55))
 	fmt.Println("⚠️  IMPORTANT: This tool will modify application data.")
 	fmt.Println("   Always backup your important work before proceeding.")
@@ -243,6 +246,6 @@ func performDiscovery(engine *cleaner.Engine, cfg *config.Config) {
 }
 
 func runGUI() {
-	app := gui.NewApp()
+	app := gui.NewApp(version)
 	app.Run()
 }

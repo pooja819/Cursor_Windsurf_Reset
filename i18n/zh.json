@@ -225,7 +225,7 @@
     "other": "Cursor & Windsurf 重置工具"
   },
   "Version": {
-    "other": "版本: 1.0.0"
+    "other": "版本: {{.Version}}"
   },
   "DevelopedBy": {
     "other": "基于Go语言和Fyne框架开发"

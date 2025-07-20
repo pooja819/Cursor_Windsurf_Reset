@@ -192,7 +192,7 @@
     "other": "Cursor & Windsurf Reset Tool"
   },
   "Version": {
-    "other": "Version: 1.0.0"
+    "other": "Version: {{.Version}}"
   },
   "DevelopedBy": {
     "other": "Developed with Go and the Fyne framework."
