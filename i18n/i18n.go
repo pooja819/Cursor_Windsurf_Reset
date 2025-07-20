@@ -20,7 +20,22 @@ func Init(i18nPath string) (*i18n.Bundle, error) {
 	bundle := i18n.NewBundle(language.English)
 	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
 
-	// 尝试多个可能的路径
+	embeddedFiles := GetEmbeddedFiles()
+	if len(embeddedFiles) > 0 {
+		for filename, data := range embeddedFiles {
+			if len(data) > 0 {
+
+				messageFile, err := bundle.ParseMessageFileBytes(data, filename)
+				if err != nil {
+					continue
+				}
+				bundle.AddMessages(messageFile.Tag, messageFile.Messages...)
+			}
+		}
+		if len(bundle.LanguageTags()) > 0 {
+			return bundle, nil
+		}
+	}
 	possiblePaths := []string{
 		i18nPath,
 		filepath.Join(".", i18nPath),

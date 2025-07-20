@@ -113,7 +113,9 @@ go build -o Cursor_Windsurf_Reset .
    CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-H windowsgui" -o Cursor_Windsurf_Reset.exe .
    ```
 
-详细的 Windows 构建修复说明请参考: [WINDOWS_BUILD_FIX.md](WINDOWS_BUILD_FIX.md)
+详细的 Windows 构建修复说明请参考:
+- [WINDOWS_BUILD_FIX.md](WINDOWS_BUILD_FIX.md) - 本地构建问题修复
+- [GITHUB_ACTIONS_WINDOWS_FIX.md](GITHUB_ACTIONS_WINDOWS_FIX.md) - GitHub Actions 构建修复
 
 #### Usage Steps
 1. After launching the application, the tool will automatically detect installed applications
