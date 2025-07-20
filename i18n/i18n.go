@@ -20,22 +20,6 @@ func Init(i18nPath string) (*i18n.Bundle, error) {
 	bundle := i18n.NewBundle(language.English)
 	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
 
-	// 首先尝试从嵌入的资源加载
-	embeddedFiles := GetEmbeddedFiles()
-	for filename, content := range embeddedFiles {
-		// 从嵌入的内容解析消息
-		_, err := bundle.ParseMessageFileBytes(content, filename)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// 如果嵌入资源加载成功，直接返回
-	if len(embeddedFiles) > 0 {
-		return bundle, nil
-	}
-
-	// 如果没有嵌入资源，则尝试从文件系统加载（用于开发环境）
 	// 尝试多个可能的路径
 	possiblePaths := []string{
 		i18nPath,

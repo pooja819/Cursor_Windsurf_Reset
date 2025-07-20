@@ -435,7 +435,6 @@ func (e *Engine) modifyTelemetry(appPath, appName string) error {
 			fileUpdated, fileUpdatedKeys, fileDeletedKeys, fileSuccess = e.processSQLiteFile(filePath, telemetryKeys, sessionKeys)
 
 		case fileExt == ".json":
-			// 处理JSON文件
 			fileUpdated, fileUpdatedKeys, fileDeletedKeys, fileSuccess = e.processJSONFile(filePath, telemetryKeys, sessionKeys)
 
 		default:
