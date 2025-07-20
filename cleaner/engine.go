@@ -90,33 +90,22 @@ func (e *Engine) setupBackupDirectory() {
 func (e *Engine) discoverAppDataPaths() {
 	e.appDataPaths = make(map[string]string)
 	osType := runtime.GOOS
-	log.Info().Str("os", osType).Msg("Discovering application data paths")
 
 	for appName, appConfig := range e.config.Applications {
 		e.appDataPaths[appName] = ""
-		log.Info().Str("app", appName).Msg("Checking application")
 
 		paths, exists := appConfig.DataPaths[osType]
 		if !exists {
-			log.Warn().Str("app", appName).Str("os", osType).Msg("No paths defined for this OS")
 			continue
 		}
 
 		for _, pathTemplate := range paths {
 			expandedPath := e.expandPathTemplate(pathTemplate)
-			log.Debug().Str("app", appName).Str("template", pathTemplate).Str("expanded", expandedPath).Msg("Checking path")
 
 			if _, err := os.Stat(expandedPath); err == nil {
-				log.Info().Str("app", appName).Str("path", expandedPath).Msg("Found application data")
 				e.appDataPaths[appName] = expandedPath
 				break
-			} else {
-				log.Debug().Str("app", appName).Str("path", expandedPath).Err(err).Msg("Path not found")
 			}
-		}
-
-		if e.appDataPaths[appName] == "" {
-			log.Warn().Str("app", appName).Msg("Application not found")
 		}
 	}
 }
@@ -132,11 +121,7 @@ func (e *Engine) expandPathTemplate(template string) string {
 	}
 
 	result := os.Expand(template, func(key string) string {
-		value := os.Getenv(key)
-		if value == "" {
-			log.Debug().Str("var", key).Msg("Environment variable not found")
-		}
-		return value
+		return os.Getenv(key)
 	})
 
 	re := regexp.MustCompile(`%([^%]+)%`)
@@ -144,7 +129,6 @@ func (e *Engine) expandPathTemplate(template string) string {
 		envVar := match[1 : len(match)-1]
 		value := os.Getenv(envVar)
 		if value == "" {
-			log.Debug().Str("var", envVar).Msg("Environment variable not found")
 			return match
 		}
 		return value
@@ -387,12 +371,10 @@ func (e *Engine) modifyTelemetry(appPath, appName string) error {
 	dbFiles := e.config.CleaningOptions.DatabaseFiles
 
 	// 使用增强的递归文件查找函数
-	log.Info().Str("app", appName).Str("path", appPath).Strs("target_files", dbFiles).Msg("Starting to find identifier files")
 	foundFiles := e.findFilesRecursiveAdvanced(appPath, dbFiles)
 
 	if len(foundFiles) == 0 {
 		// 如果没有找到配置的文件，尝试查找所有可能的数据库文件
-		log.Warn().Str("app", appName).Msg("No configured identifier files found, trying to find all possible database files")
 		foundFiles = e.findDatabaseFiles(appPath)
 	}
 
@@ -432,17 +414,14 @@ func (e *Engine) modifyTelemetry(appPath, appName string) error {
 
 		// 检查文件是否存在和可访问
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
-			log.Warn().Str("file", filePath).Msg("File does not exist, skipping")
 			failedFiles++
 			continue
 		}
 
 		// 创建备份
-		backupPath, err := e.CreateBackup(filePath, fmt.Sprintf("%s_telemetry_%s", appName, filepath.Base(filePath)))
+		_, err := e.CreateBackup(filePath, fmt.Sprintf("%s_telemetry_%s", appName, filepath.Base(filePath)))
 		if err != nil {
-			log.Warn().Str("file", filePath).Err(err).Msg("Failed to backup file, continuing")
-		} else {
-			log.Info().Str("file", filePath).Str("backup", backupPath).Msg("Successfully created backup")
+			log.Warn().Str("file", filePath).Err(err).Msg("Failed to backup file")
 		}
 
 		// 根据文件类型处理
@@ -460,7 +439,6 @@ func (e *Engine) modifyTelemetry(appPath, appName string) error {
 			fileUpdated, fileUpdatedKeys, fileDeletedKeys, fileSuccess = e.processJSONFile(filePath, telemetryKeys, sessionKeys)
 
 		default:
-			log.Debug().Str("file", filePath).Str("type", fileExt).Msg("Unsupported file type, skipping")
 			continue
 		}
 
@@ -497,7 +475,6 @@ func (e *Engine) modifyTelemetry(appPath, appName string) error {
 
 // processSQLiteFile 处理单个SQLite文件，返回是否更新成功，更新的键数，删除的键数，以及处理是否成功
 func (e *Engine) processSQLiteFile(dbPath string, telemetryKeys, sessionKeys []string) (bool, int, int, bool) {
-	log.Debug().Str("path", dbPath).Msg("Processing SQLite database")
 
 	// 尝试使用不同的连接参数打开数据库
 	connectionStrings := []string{
@@ -731,13 +708,11 @@ func (e *Engine) analyzeTableStructure(db *sql.DB, tableName string) (TableInfo,
 
 // processJSONFile 处理单个JSON文件，返回是否更新成功，更新的键数，删除的键数，以及处理是否成功
 func (e *Engine) processJSONFile(jsonPath string, telemetryKeys, sessionKeys []string) (bool, int, int, bool) {
-	log.Debug().Str("path", jsonPath).Msg("处理JSON文件")
 
 	// 1. 创建备份副本以便出错时恢复
 	tempBackupPath := jsonPath + ".bak"
 	err := copyFile(jsonPath, tempBackupPath)
 	if err != nil {
-		log.Debug().Str("path", jsonPath).Err(err).Msg("创建临时备份失败，继续处理")
 		// 继续处理，即使没有备份
 	} else {
 		defer func() {
@@ -755,7 +730,6 @@ func (e *Engine) processJSONFile(jsonPath string, telemetryKeys, sessionKeys []s
 
 	// 3. 处理空文件的情况
 	if len(data) == 0 {
-		log.Warn().Str("path", jsonPath).Msg("JSON文件为空")
 		return false, 0, 0, true // 视为成功处理但无需更改
 	}
 
@@ -770,7 +744,6 @@ func (e *Engine) processJSONFile(jsonPath string, telemetryKeys, sessionKeys []s
 		}
 
 		// 不支持处理JSON数组
-		log.Warn().Str("path", jsonPath).Msg("JSON文件是数组格式，不支持处理")
 		return false, 0, 0, true // 视为成功处理但无需更改
 	}
 
@@ -859,7 +832,6 @@ func (e *Engine) processJSONFile(jsonPath string, telemetryKeys, sessionKeys []s
 		return true, updatedKeys, deletedKeys, true
 	}
 
-	log.Debug().Str("path", jsonPath).Msg("JSON文件无需修改")
 	return false, 0, 0, true // 没有更改，但处理成功
 }
 
@@ -1013,7 +985,6 @@ func (e *Engine) cleanDatabases(appPath, appName string) error {
 
 // cleanSQLiteDatabaseAdvanced 增强版的SQLite数据库重置函数
 func (e *Engine) cleanSQLiteDatabaseAdvanced(dbPath string, keywords []string) (bool, int, bool) {
-	log.Debug().Str("path", dbPath).Msg("重置SQLite数据库")
 
 	// 尝试使用不同的连接参数打开数据库
 	connectionStrings := []string{
@@ -1922,7 +1893,6 @@ func min(a, b int) int {
 
 // TestSQLiteConnection 测试SQLite连接和操作，用于调试
 func (e *Engine) TestSQLiteConnection(dbPath string) error {
-	log.Info().Str("path", dbPath).Msg("Testing SQLite connection")
 
 	// 检查文件是否存在
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {

@@ -430,10 +430,6 @@ func (app *App) createContent() fyne.CanvasObject {
 	mainArea.Offset = 0.3 // 应用列表占30%，其他区域占70%
 
 	app.mainAreaContainer = mainArea
-	app.logMessage("INFO", "LogMainAreaCreated", map[string]interface{}{
-		"AppListRatio":  mainArea.Offset,
-		"ControlsRatio": controlsAndLogArea.Offset,
-	})
 
 	// 9. 组合所有区域 - 现在所有区域都在可调节的分割容器中
 	mainContent := container.NewBorder(
@@ -447,7 +443,6 @@ func (app *App) createContent() fyne.CanvasObject {
 
 // performDiscovery performs application discovery
 func (app *App) performDiscovery() {
-	app.logMessage("INFO", "LogDiscoveryStarted", nil)
 	if app.statusLabel != nil {
 		app.statusLabel.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "StatusDiscoveringApps"}))
 	}
@@ -455,26 +450,8 @@ func (app *App) performDiscovery() {
 	// 获取和显示所有应用数据路径
 	appDataPaths := app.engine.GetAppDataPaths()
 
-	// 打印原始路径数据
-	app.logMessage("INFO", "LogOriginalAppPaths", map[string]interface{}{
-		"Paths": fmt.Sprintf("%v", appDataPaths),
-	})
-
 	// 重置应用数据列表
 	app.appData = make([]AppInfo, 0)
-
-	// 调试日志
-	app.logMessage("INFO", "LogDiscoveredAppCount", map[string]interface{}{
-		"Count": len(appDataPaths),
-	})
-
-	// 详细输出所有应用
-	for name, path := range appDataPaths {
-		app.logMessage("INFO", "LogDiscoveredApp", map[string]interface{}{
-			"Name": name,
-			"Path": path,
-		})
-	}
 
 	// 按顺序排列应用，确保顺序一致
 	appNames := make([]string, 0, len(appDataPaths))
@@ -508,38 +485,11 @@ func (app *App) performDiscovery() {
 			// 获取目录大小
 			size := app.engine.GetDirectorySize(appPath)
 			appInfo.Size = app.engine.FormatSize(size)
-
-			app.logMessage("INFO", "LogFoundAppDetails", map[string]interface{}{
-				"DisplayName": appInfo.DisplayName,
-				"Path":        appPath,
-				"Size":        appInfo.Size,
-				"Running":     appInfo.Running,
-			})
 		} else {
 			appInfo.Size = "未知"
-			app.logMessage("INFO", "LogAppNotFound", map[string]interface{}{
-				"DisplayName": appInfo.DisplayName,
-			})
 		}
 
 		app.appData = append(app.appData, appInfo)
-		app.logMessage("INFO", "LogAppAddedToList", map[string]interface{}{
-			"DisplayName": appInfo.DisplayName,
-			"Index":       len(app.appData) - 1,
-		})
-	}
-
-	// 调试日志
-	app.logMessage("INFO", "LogTotalAppCount", map[string]interface{}{
-		"Count": len(app.appData),
-	})
-
-	for i, appInfo := range app.appData {
-		app.logMessage("INFO", "LogFinalAppListItem", map[string]interface{}{
-			"Index":       i,
-			"DisplayName": appInfo.DisplayName,
-			"Path":        appInfo.Path,
-		})
 	}
 
 	// 清空选中状态
@@ -566,7 +516,6 @@ func (app *App) performDiscovery() {
 	if app.statusLabel != nil {
 		app.statusLabel.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "StatusDiscoveryComplete"}))
 	}
-	app.logMessage("INFO", "LogDiscoveryComplete", nil)
 
 	// 计算有效的应用数量（已找到且未运行的应用）
 	validAppCount := 0
@@ -576,7 +525,7 @@ func (app *App) performDiscovery() {
 		}
 	}
 
-	// 在日志中额外添加摘要信息
+	// 在日志中添加摘要信息
 	app.logMessage("INFO", "LogDiscoverySummary", map[string]interface{}{
 		"Total": len(app.appData),
 		"Valid": validAppCount,
@@ -588,7 +537,6 @@ func (app *App) performDiscovery() {
 
 // onDiscover handles the discover button click
 func (app *App) onDiscover() {
-	app.logMessage("INFO", "LogUserStartedDiscovery", nil)
 
 	// 禁用扫描按钮，防止重复点击
 	if app.discoverButton != nil {
@@ -630,20 +578,6 @@ func (app *App) onDiscover() {
 func (app *App) updateCleanButton() {
 	// 检查是否有选中的应用
 	hasSelected := false
-
-	// 调试日志 - 输出所有应用信息
-	app.logMessage("INFO", "LogUpdateResetButtonStatus", nil)
-	for i, appInfo := range app.appData {
-		isSelected := app.selectedApps[i]
-		app.logMessage("INFO", "LogAppStatusForButtonUpdate", map[string]interface{}{
-			"Index":    i,
-			"Name":     appInfo.DisplayName,
-			"Found":    appInfo.Found,
-			"Running":  appInfo.Running,
-			"Selected": isSelected,
-		})
-	}
-
 	for _, selected := range app.selectedApps {
 		if selected {
 			hasSelected = true
@@ -662,11 +596,9 @@ func (app *App) updateCleanButton() {
 			}
 		}
 		app.cleanButton.SetText(fmt.Sprintf("%s (%d)", app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "ResetSelected"}), count))
-		app.logMessage("INFO", "LogResetButtonEnabled", map[string]interface{}{"Count": count})
 	} else {
 		app.cleanButton.Disable()
 		app.cleanButton.SetText(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "ResetSelected"}))
-		app.logMessage("INFO", "LogResetButtonDisabled", nil)
 	}
 }
 
