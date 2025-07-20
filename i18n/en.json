@@ -194,6 +194,9 @@
   "Version": {
     "other": "Version: {{.Version}}"
   },
+  "NewVersionAvailable": {
+    "other": "🆕 New version available: {{.Version}}"
+  },
   "DevelopedBy": {
     "other": "Developed with Go and the Fyne framework."
   },

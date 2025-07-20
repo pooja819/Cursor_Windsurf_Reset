@@ -227,6 +227,9 @@
   "Version": {
     "other": "版本: {{.Version}}"
   },
+  "NewVersionAvailable": {
+    "other": "🆕 新版本可用: {{.Version}}"
+  },
   "DevelopedBy": {
     "other": "基于Go语言和Fyne框架开发"
   },

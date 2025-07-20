@@ -14,6 +14,7 @@ import (
 
 	"Cursor_Windsurf_Reset/cleaner"
 	"Cursor_Windsurf_Reset/config"
+	"Cursor_Windsurf_Reset/version"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -27,14 +28,15 @@ import (
 )
 
 type App struct {
-	fyneApp    fyne.App
-	mainWindow fyne.Window
-	engine     *cleaner.Engine
-	config     *config.Config
-	logChan    chan string
-	bundle     *i18n.Bundle
-	localizer  *appi18n.LocalizerWrapper
-	version    string
+	fyneApp     fyne.App
+	mainWindow  fyne.Window
+	engine      *cleaner.Engine
+	config      *config.Config
+	logChan     chan string
+	bundle      *i18n.Bundle
+	localizer   *appi18n.LocalizerWrapper
+	version     string
+	versionInfo *version.VersionInfo
 
 	guiLogger zerolog.Logger
 
@@ -50,6 +52,7 @@ type App struct {
 	helpButton         *widget.Button
 	selectedIndex      int
 	mainAreaContainer  fyne.CanvasObject
+	headerContainer    *fyne.Container // Store header reference
 
 	selectedApps   map[int]bool
 	selectAllCheck *widget.Check
@@ -115,6 +118,7 @@ func NewApp(version string) *App {
 		bundle:        bundle,
 		localizer:     localizer,
 		version:       version,
+		versionInfo:   nil,
 		guiLogger:     guiLogger,
 		selectedApps:  make(map[int]bool),
 		selectedIndex: -1,
@@ -133,6 +137,9 @@ func NewApp(version string) *App {
 			"Message": fmt.Sprintf("检测到系统语言: %s (%s)", langName, systemLang),
 		})
 	}()
+
+	// Check for updates in background
+	go app.checkForUpdates()
 
 	return app
 }
@@ -229,8 +236,6 @@ func (app *App) createContent() fyne.CanvasObject {
 
 	// 初始化全选复选框
 	app.selectAllCheck = widget.NewCheck(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "SelectAll"}), func(checked bool) {
-		app.logMessage("INFO", "LogSelectAllChanged", map[string]interface{}{"Status": checked})
-
 		// 保存修改前的状态，用于对比找出哪些项需要刷新
 		oldSelectedState := make(map[int]bool)
 		for id, selected := range app.selectedApps {
@@ -271,14 +276,17 @@ func (app *App) createContent() fyne.CanvasObject {
 		fyne.TextAlignCenter,
 		fyne.TextStyle{Bold: true})
 
+	// Store header for later updates
+	app.headerContainer = container.NewHBox(
+		widget.NewIcon(theme.ComputerIcon()),
+		appTitle,
+		layout.NewSpacer(),
+		app.helpButton,
+		app.aboutButton,
+	)
+
 	header := container.NewVBox(
-		container.NewPadded(
-			container.NewHBox(
-				widget.NewIcon(theme.ComputerIcon()),
-				appTitle,
-				layout.NewSpacer(),
-				app.helpButton,
-				app.aboutButton)),
+		container.NewPadded(app.headerContainer),
 		widget.NewSeparator())
 
 	// 2. 创建应用列表区域
@@ -899,7 +907,7 @@ func (app *App) onAbout() {
 	projectLink := widget.NewHyperlink(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "ProjectHomepage"}), projectURL)
 	projectLink.Alignment = fyne.TextAlignCenter
 
-	// Create version string
+	// Create version string with update notification if available
 	versionString := app.localizer.MustLocalize(&i18n.LocalizeConfig{
 		MessageID: "Version",
 		TemplateData: map[string]interface{}{
@@ -907,9 +915,33 @@ func (app *App) onAbout() {
 		},
 	})
 
+	// Create version content
+	var versionContent fyne.CanvasObject
+	if app.versionInfo != nil && app.versionInfo.HasUpdate {
+		// Create update notification
+		updateMsg := app.localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "NewVersionAvailable",
+			TemplateData: map[string]interface{}{
+				"Version": app.versionInfo.LatestVersion,
+			},
+		})
+
+		// Create hyperlink for new version
+		releaseURL, _ := url.Parse(app.versionInfo.ReleaseURL)
+		updateLink := widget.NewHyperlink(updateMsg, releaseURL)
+		updateLink.TextStyle = fyne.TextStyle{Bold: true}
+
+		versionContent = container.NewVBox(
+			widget.NewLabel(versionString),
+			updateLink,
+		)
+	} else {
+		versionContent = widget.NewLabel(versionString)
+	}
+
 	aboutContent := container.NewVBox(
 		widget.NewLabelWithStyle(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "AboutTitle"}), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
-		widget.NewLabel(versionString),
+		versionContent,
 		widget.NewLabel(app.localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "DevelopedBy"})),
 		projectLink,
 		widget.NewSeparator(),
@@ -1394,4 +1426,73 @@ func (app *App) findAppList() *widget.List {
 	}
 
 	return list
+}
+
+// checkForUpdates checks for application updates in background
+func (app *App) checkForUpdates() {
+	// Skip update check in dev mode
+	if app.version == "" || app.version == "dev" {
+		return
+	}
+
+	// Wait a bit before checking to not slow down startup
+	time.Sleep(2 * time.Second)
+
+	info, err := version.CheckLatestVersion(app.version)
+	if err != nil {
+		app.logMessage("DEBUG", "LogMessage", map[string]interface{}{
+			"Message": fmt.Sprintf("Failed to check for updates: %v", err),
+		})
+		return
+	}
+
+	app.versionInfo = info
+
+	// If update is available, update the About button
+	if info.HasUpdate {
+		app.logMessage("INFO", "LogMessage", map[string]interface{}{
+			"Message": fmt.Sprintf("New version available: %s", info.LatestVersion),
+		})
+
+		// Update About button to show red dot
+		app.updateAboutButtonWithRedDot()
+	}
+}
+
+// updateAboutButtonWithRedDot adds a red dot to the About button
+func (app *App) updateAboutButtonWithRedDot() {
+	if app.aboutButton == nil || app.headerContainer == nil {
+		return
+	}
+
+	// Create a new button with red dot indicator
+	// Create the info icon
+	icon := widget.NewIcon(theme.InfoIcon())
+
+	// Create a smaller red dot positioned at top-right corner
+	redDot := canvas.NewCircle(color.NRGBA{R: 255, G: 59, B: 48, A: 255})
+	redDot.StrokeWidth = 0
+	redDot.Resize(fyne.NewSize(8, 8)) // Smaller dot
+	redDot.Move(fyne.NewPos(18, -2))  // Position at top-right corner
+
+	// Create a container with icon and red dot
+	// Make the container slightly larger to accommodate the dot
+	iconWithDot := container.NewWithoutLayout(icon, redDot)
+	iconWithDot.Resize(fyne.NewSize(26, 24))
+
+	// Create a tappable area
+	tappable := widget.NewButton("", app.onAbout)
+	tappable.Importance = widget.LowImportance
+
+	// Stack them together
+	buttonWithDot := container.NewStack(iconWithDot, tappable)
+
+	// Replace the about button in the header
+	for i, obj := range app.headerContainer.Objects {
+		if obj == app.aboutButton {
+			app.headerContainer.Objects[i] = buttonWithDot
+			app.headerContainer.Refresh()
+			break
+		}
+	}
 }
