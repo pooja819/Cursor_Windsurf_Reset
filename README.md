@@ -32,8 +32,17 @@ An advanced tool for resetting Cursor and Windsurf application data, supporting 
 - Build tools and OpenGL libraries
 
 #### Quick Setup for Ubuntu 22.04
+
+**如果遇到编译错误 (推荐先试这个)**:
 ```bash
-# Method 1: One-click build (recommended)
+# 快速修复 OpenGL/X11 依赖问题
+chmod +x fix_ubuntu_deps.sh
+./fix_ubuntu_deps.sh
+```
+
+**完整构建流程**:
+```bash
+# Method 1: One-click build
 chmod +x build_ubuntu.sh
 ./build_ubuntu.sh
 
@@ -59,24 +68,52 @@ go build -o Cursor_Windsurf_Reset .
 ```
 
 #### Troubleshooting Ubuntu Build Issues
-If you encounter build errors on Ubuntu:
 
-1. **OpenGL/X11 errors**: Make sure all development libraries are installed
+**常见错误及解决方案**:
+
+1. **`Package gl was not found` 或 `X11/Xlib.h: No such file or directory`**
    ```bash
-   sudo apt install -y libgl1-mesa-dev mesa-common-dev libx11-dev
+   # 使用快速修复脚本 (推荐)
+   ./fix_ubuntu_deps.sh
+
+   # 或手动安装依赖
+   sudo apt install -y build-essential pkg-config libgl1-mesa-dev \
+       mesa-common-dev libx11-dev libglfw3-dev libgtk-3-dev
    ```
 
-2. **pkg-config errors**: Install pkg-config and verify library paths
+2. **一键安装所有依赖**:
    ```bash
-   sudo apt install -y pkg-config
-   pkg-config --list-all | grep -E "(gl|x11|gtk)"
+   sudo apt update && sudo apt install -y build-essential pkg-config \
+       libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev \
+       libxi-dev libxxf86vm-dev libxext-dev libxfixes-dev \
+       libxrender-dev libxss-dev libgl1-mesa-dev libglu1-mesa-dev \
+       mesa-common-dev libglfw3-dev libgtk-3-dev \
+       libayatana-appindicator3-dev libxapp-dev
    ```
 
-3. **Go version issues**: Ensure Go version >= 1.21
+3. **Go 版本检查**: 确保 Go >= 1.21
    ```bash
    go version
-   # If too old, install newer version from https://golang.org/
    ```
+
+详细故障排除指南请参考: [UBUNTU_MANUAL_FIX.md](UBUNTU_MANUAL_FIX.md)
+
+#### Windows 构建问题
+
+如果 GitHub Actions 构建的 Windows 版本无法运行:
+
+1. **下载最新版本**: 确保下载最新的 release 版本
+2. **检查系统兼容性**: 需要 Windows 10 或更高版本 (64位)
+3. **杀毒软件**: 某些杀毒软件可能阻止未签名的可执行文件
+4. **本地构建**: 如果仍有问题，可以本地构建:
+   ```bash
+   # Windows 本地构建
+   make build-windows
+   # 或手动构建
+   CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-H windowsgui" -o Cursor_Windsurf_Reset.exe .
+   ```
+
+详细的 Windows 构建修复说明请参考: [WINDOWS_BUILD_FIX.md](WINDOWS_BUILD_FIX.md)
 
 #### Usage Steps
 1. After launching the application, the tool will automatically detect installed applications

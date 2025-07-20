@@ -71,7 +71,9 @@ jobs:
       run: |
         export DEBIAN_FRONTEND=noninteractive
         sudo apt-get update -qq
-        sudo apt-get install -y --no-install-recommends gcc-mingw-w64
+        sudo apt-get install -y --no-install-recommends gcc-mingw-w64 gcc-mingw-w64-x86-64
+        x86_64-w64-mingw32-gcc --version
+        echo "✅ Windows 交叉编译工具安装完成"
 
     # 增强macOS构建支持
     - name: Setup macOS cross-compilation (if needed)
@@ -198,7 +200,7 @@ jobs:
           sed -i 's/NotoSansSC-Regular.ttf/NotoSansSC-Subset.ttf/g' gui/resources.go
           echo "✅ 更新resources.go使用子集字体"
         else
-          echo "❌ 错误: resources.go文件不存在"
+          echo "⚠️ 警告: resources.go文件不存在，跳过字体更新"
         fi
 
     # 增强构建步骤，添加更多错误处理和调试信息
@@ -206,18 +208,20 @@ jobs:
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
-        CGO_ENABLED: ${{ matrix.goos == 'darwin' && '0' || '1' }}
+        CGO_ENABLED: ${{ matrix.goos == 'windows' && '0' || (matrix.goos == 'darwin' && '0' || '1') }}
       run: |
         echo "🔨 开始为 ${{ matrix.goos }}-${{ matrix.goarch }} 构建二进制文件..."
-        
+
         # 设置交叉编译环境
         if [ "${{ matrix.goos }}" = "windows" ]; then
-          export CC=x86_64-w64-mingw32-gcc
-          export CXX=x86_64-w64-mingw32-g++
+          echo "ℹ️ Windows构建禁用CGO以避免交叉编译问题"
+          export CGO_ENABLED=0
         elif [ "${{ matrix.goos }}" = "darwin" ]; then
           echo "ℹ️ macOS构建已禁用CGO以解决交叉编译问题"
-                  elif [ "${{ matrix.goos }}" = "linux" ]; then
-            echo "ℹ️ 配置Linux构建环境"
+          export CGO_ENABLED=0
+        elif [ "${{ matrix.goos }}" = "linux" ]; then
+          echo "ℹ️ 配置Linux构建环境"
+          export CGO_ENABLED=1
         fi
         
         # 显示编译环境信息
@@ -235,13 +239,16 @@ jobs:
           BUILD_TAGS="-tags=nomobile,nogl"
           echo "ℹ️ 为macOS构建添加特殊标签: $BUILD_TAGS"
           export FYNE_RENDER="software"
+        elif [ "${{ matrix.goos }}" = "windows" ]; then
+          # Windows 使用软件渲染避免 OpenGL 依赖问题
+          export FYNE_RENDER="software"
+          echo "ℹ️ Windows构建使用软件渲染"
         fi
-        
-        
-        
+
         LDFLAGS="-s -w -X main.version=${{ github.ref_name }}"
         if [ "${{ matrix.goos }}" = "windows" ]; then
           LDFLAGS="$LDFLAGS -H windowsgui"
+          echo "ℹ️ Windows构建添加GUI标志"
         fi
         
         echo "🔧 执行构建命令: go build $BUILD_TAGS -ldflags=\"$LDFLAGS\" -o \"${OUTPUT_NAME}\" main.go"
@@ -268,21 +275,29 @@ jobs:
           exit 1
         fi
         
-        echo "📦 开始UPX压缩..."
-        if ! upx --best "${OUTPUT_NAME}"; then
-          echo "⚠️ UPX压缩失败，尝试使用普通模式"
-          upx "${OUTPUT_NAME}" || echo "❌ UPX压缩完全失败，使用未压缩文件"
+        # 对于 Windows，跳过 UPX 压缩以避免兼容性问题
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          echo "⚠️ 跳过 Windows 版本的 UPX 压缩以确保兼容性"
+          COMPRESSED_SIZE=${ORIGINAL_SIZE}
+          SAVED_SIZE=0
+          SAVED_PERCENT=0
+        else
+          echo "📦 开始UPX压缩..."
+          if ! upx --best "${OUTPUT_NAME}"; then
+            echo "⚠️ UPX压缩失败，尝试使用普通模式"
+            upx "${OUTPUT_NAME}" || echo "❌ UPX压缩完全失败，使用未压缩文件"
+          fi
+
+          COMPRESSED_SIZE=$(stat -c %s "${OUTPUT_NAME}")
+          SAVED_SIZE=$((ORIGINAL_SIZE - COMPRESSED_SIZE))
+          SAVED_PERCENT=$((SAVED_SIZE * 100 / ORIGINAL_SIZE))
         fi
-        
-        COMPRESSED_SIZE=$(stat -c %s "${OUTPUT_NAME}")
-        SAVED_SIZE=$((ORIGINAL_SIZE - COMPRESSED_SIZE))
-        SAVED_PERCENT=$((SAVED_SIZE * 100 / ORIGINAL_SIZE))
-        
-        echo "📊 压缩效果:"
-        echo "- 压缩前: ${ORIGINAL_SIZE} 字节"
-        echo "- 压缩后: ${COMPRESSED_SIZE} 字节"
+
+        echo "📊 文件大小信息:"
+        echo "- 原始大小: ${ORIGINAL_SIZE} 字节"
+        echo "- 最终大小: ${COMPRESSED_SIZE} 字节"
         echo "- 节省空间: ${SAVED_SIZE} 字节 (${SAVED_PERCENT}%)"
-        
+
         echo "${ORIGINAL_SIZE},${COMPRESSED_SIZE},${SAVED_SIZE},${SAVED_PERCENT}" > "${OUTPUT_NAME}.metrics"
 
     - name: Upload artifacts
