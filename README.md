@@ -25,22 +25,7 @@ An advanced tool for resetting Cursor and Windsurf application data, supporting 
    - Linux: `Cursor_Windsurf_Reset-linux`
 3. Double-click to run (Windows) or execute in terminal
 
-#### Manual Setup
-```bash
-# Install system dependencies
-sudo apt update
-sudo apt install -y build-essential libgl1-mesa-dev libglu1-mesa-dev \
-    mesa-common-dev libglfw3-dev libx11-dev libxcursor-dev libxrandr-dev \
-    libxinerama-dev libxi-dev libxxf86vm-dev libxext-dev libxfixes-dev \
-    libxrender-dev libxss-dev pkg-config libgtk-3-dev \
-    libayatana-appindicator3-dev libxapp-dev
 
-# Install Go dependencies and build
-go mod tidy
-go build -o Cursor_Windsurf_Reset .
-```
-
-#### Troubleshooting Ubuntu Build Issues
 
 
 #### Usage Steps
