@@ -86,11 +86,12 @@ jobs:
         sudo apt-get install -y --no-install-recommends gcc-mingw-w64
 
     # 增强macOS构建支持
-    - name: Setup macOS cross-compilation (if needed)
+    - name: Setup macOS compilation environment
       if: matrix.goos == 'darwin'
       run: |
         echo "ℹ️ 设置macOS编译环境..."
         xcode-select --install || echo "Command Line Tools already installed"
+        brew install glfw3
 
     # 修改：从zh.json国际化文件中提取中文字符
     - name: Extract Chinese characters from i18n files
@@ -227,7 +228,7 @@ jobs:
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
-        CGO_ENABLED: ${{ matrix.goos == 'darwin' && '0' || '1' }}
+        CGO_ENABLED: '1'
       run: |
         echo "🔨 开始为 ${{ matrix.goos }}-${{ matrix.goarch }} 构建二进制文件..."
         
@@ -253,9 +254,8 @@ jobs:
         
         BUILD_TAGS=""
         if [ "${{ matrix.goos }}" = "darwin" ]; then
-          BUILD_TAGS="-tags=nomobile,nogl"
-          echo "ℹ️ 为macOS构建添加特殊标签: $BUILD_TAGS"
-          export FYNE_RENDER="software"
+          echo "ℹ️ 为macOS构建配置环境"
+          export CGO_ENABLED=1
         fi
         
         
