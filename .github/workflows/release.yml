@@ -52,9 +52,17 @@ jobs:
 
     # 新增：安装UPX压缩工具
     - name: Install UPX
+      if: matrix.goos != 'darwin'
       run: |
         sudo apt-get update
         sudo apt-get install -y upx-ucl
+        upx --version
+        echo "✅ 已安装UPX压缩工具"
+
+    - name: Install UPX for macOS
+      if: matrix.goos == 'darwin'
+      run: |
+        brew install upx
         upx --version
         echo "✅ 已安装UPX压缩工具"
 
@@ -81,8 +89,8 @@ jobs:
     - name: Setup macOS cross-compilation (if needed)
       if: matrix.goos == 'darwin'
       run: |
-        echo "ℹ️ 设置macOS交叉编译环境..."
-        go env
+        echo "ℹ️ 设置macOS编译环境..."
+        xcode-select --install || echo "Command Line Tools already installed"
 
     # 修改：从zh.json国际化文件中提取中文字符
     - name: Extract Chinese characters from i18n files
@@ -187,8 +195,13 @@ jobs:
           echo "⚠️ 使用原始字体作为备用方案"
         else
           # 检查字体文件大小
-          ORIGINAL_SIZE=$(stat -c %s gui/NotoSansSC-Regular.ttf)
-          SUBSET_SIZE=$(stat -c %s gui/NotoSansSC-Subset.ttf)
+          if [ "${{ matrix.goos }}" = "darwin" ]; then
+            ORIGINAL_SIZE=$(stat -f %z gui/NotoSansSC-Regular.ttf)
+            SUBSET_SIZE=$(stat -f %z gui/NotoSansSC-Subset.ttf)
+          else
+            ORIGINAL_SIZE=$(stat -c %s gui/NotoSansSC-Regular.ttf)
+            SUBSET_SIZE=$(stat -c %s gui/NotoSansSC-Subset.ttf)
+          fi
           SAVED_SIZE=$((ORIGINAL_SIZE - SUBSET_SIZE))
           SAVED_PERCENT=$((SAVED_SIZE * 100 / ORIGINAL_SIZE))
           
@@ -199,7 +212,11 @@ jobs:
         fi
         
         if [ -f "gui/resources.go" ]; then
-          sed -i 's/NotoSansSC-Regular.ttf/NotoSansSC-Subset.ttf/g' gui/resources.go
+          if [ "${{ matrix.goos }}" = "darwin" ]; then
+            sed -i '' 's/NotoSansSC-Regular.ttf/NotoSansSC-Subset.ttf/g' gui/resources.go
+          else
+            sed -i 's/NotoSansSC-Regular.ttf/NotoSansSC-Subset.ttf/g' gui/resources.go
+          fi
           echo "✅ 更新resources.go使用子集字体"
         else
           echo "❌ 错误: resources.go文件不存在"
@@ -261,7 +278,11 @@ jobs:
           echo "构建失败: ${{ matrix.goos }}-${{ matrix.goarch }}" > "${OUTPUT_NAME}.error"
         fi
         
-        ORIGINAL_SIZE=$(stat -c %s "${OUTPUT_NAME}")
+        if [ "${{ matrix.goos }}" = "darwin" ]; then
+          ORIGINAL_SIZE=$(stat -f %z "${OUTPUT_NAME}")
+        else
+          ORIGINAL_SIZE=$(stat -c %s "${OUTPUT_NAME}")
+        fi
         echo "📊 原始二进制文件大小: ${ORIGINAL_SIZE} 字节"
         
         if [ -f "${OUTPUT_NAME}" ]; then
@@ -278,7 +299,11 @@ jobs:
           upx "${OUTPUT_NAME}" || echo "❌ UPX压缩完全失败，使用未压缩文件"
         fi
         
-        COMPRESSED_SIZE=$(stat -c %s "${OUTPUT_NAME}")
+        if [ "${{ matrix.goos }}" = "darwin" ]; then
+          COMPRESSED_SIZE=$(stat -f %z "${OUTPUT_NAME}")
+        else
+          COMPRESSED_SIZE=$(stat -c %s "${OUTPUT_NAME}")
+        fi
         SAVED_SIZE=$((ORIGINAL_SIZE - COMPRESSED_SIZE))
         SAVED_PERCENT=$((SAVED_SIZE * 100 / ORIGINAL_SIZE))
         
@@ -464,6 +489,9 @@ jobs:
         echo "### Linux Users" >> release_notes.md
         echo "- **Linux**: \`Cursor_Windsurf_Reset-linux-amd64\`" >> release_notes.md
         echo "" >> release_notes.md
+        echo "### macOS Users" >> release_notes.md
+        echo "- **macOS**: \`Cursor_Windsurf_Reset-macos-amd64\`" >> release_notes.md
+        echo "" >> release_notes.md
         echo "## 🚀 Usage" >> release_notes.md
         echo "" >> release_notes.md
         echo "1. Download the executable file for your platform" >> release_notes.md
@@ -490,6 +518,9 @@ jobs:
         echo "" >> release_notes.md
         echo "#### Linux 用户" >> release_notes.md
         echo "- **Linux**: \`Cursor_Windsurf_Reset-linux-amd64\`" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "#### macOS 用户" >> release_notes.md
+        echo "- **macOS**: \`Cursor_Windsurf_Reset-macos-amd64\`" >> release_notes.md
         echo "" >> release_notes.md
         echo "### 🚀 使用方法" >> release_notes.md
         echo "" >> release_notes.md
