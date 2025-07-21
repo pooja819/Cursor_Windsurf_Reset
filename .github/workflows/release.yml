@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     name: Build for multiple platforms
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.goos == 'darwin' && 'macOS-latest' || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
@@ -20,6 +20,10 @@ jobs:
             goarch: amd64
             suffix: ""
             name: linux-amd64
+          - goos: darwin
+            goarch: amd64
+            suffix: ""
+            name: macos-amd64
 
     steps:
     - name: Checkout code
